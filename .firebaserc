@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "localit-ef984"
+  },
+  "targets": {
+    "localit-ef984": {
+      "hosting": {
+        "localit-app": [
+          "localit-app-localit-ef984"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
