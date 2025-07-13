@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class OnboardingTaiwaneseScreen extends StatefulWidget {
   const OnboardingTaiwaneseScreen({super.key});
@@ -13,6 +15,18 @@ class OnboardingTaiwaneseScreen extends StatefulWidget {
 class _OnboardingTaiwaneseScreenState extends State<OnboardingTaiwaneseScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
+
+  // 개발 환경 감지 함수
+  bool _isDevelopment() {
+    if (kIsWeb) {
+      final uri = Uri.base;
+      return uri.host == 'localhost' ||
+          uri.host == '127.0.0.1' ||
+          uri.host.contains('dev') ||
+          uri.port != 443;
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +157,17 @@ class _OnboardingTaiwaneseScreenState extends State<OnboardingTaiwaneseScreen> {
                       // LINE 안내
                       GestureDetector(
                         onTap: () async {
+                          // 개발 환경이 아닌 경우에만 이벤트 전송
+                          if (!_isDevelopment()) {
+                            FirebaseAnalytics.instance.logEvent(
+                              name: 'line_link_clicked',
+                              parameters: {
+                                'language': 'taiwanese',
+                                'screen': 'onboarding_taiwanese',
+                              },
+                            );
+                          }
+
                           final Uri url =
                               Uri.parse('https://line.me/ti/p/Mp5RBh9JzM');
                           if (await canLaunchUrl(url)) {
@@ -219,6 +244,18 @@ class _OnboardingTaiwaneseScreenState extends State<OnboardingTaiwaneseScreen> {
 
   void _showEmailDialog() {
     _emailController.clear();
+
+    // 개발 환경이 아닌 경우에만 이벤트 전송
+    if (!_isDevelopment()) {
+      FirebaseAnalytics.instance.logEvent(
+        name: 'email_dialog_opened',
+        parameters: {
+          'language': 'taiwanese',
+          'screen': 'onboarding_taiwanese',
+        },
+      );
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -242,7 +279,19 @@ class _OnboardingTaiwaneseScreenState extends State<OnboardingTaiwaneseScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                // 개발 환경이 아닌 경우에만 이벤트 전송
+                if (!_isDevelopment()) {
+                  FirebaseAnalytics.instance.logEvent(
+                    name: 'email_registration_cancelled',
+                    parameters: {
+                      'language': 'taiwanese',
+                      'screen': 'onboarding_taiwanese',
+                    },
+                  );
+                }
+                Navigator.of(context).pop();
+              },
               child: const Text('取消'),
             ),
             ElevatedButton(
@@ -288,6 +337,18 @@ class _OnboardingTaiwaneseScreenState extends State<OnboardingTaiwaneseScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
+      // 개발 환경이 아닌 경우에만 이벤트 전송
+      if (!_isDevelopment()) {
+        FirebaseAnalytics.instance.logEvent(
+          name: 'email_registration_success',
+          parameters: {
+            'language': 'taiwanese',
+            'screen': 'onboarding_taiwanese',
+            'email_domain': email.split('@').last, // 이메일 도메인 추적 (개인정보 보호)
+          },
+        );
+      }
+
       if (mounted) {
         Navigator.of(context).pop(); // 다이얼로그 닫기
         ScaffoldMessenger.of(context).showSnackBar(
@@ -299,6 +360,18 @@ class _OnboardingTaiwaneseScreenState extends State<OnboardingTaiwaneseScreen> {
         );
       }
     } catch (e) {
+      // 개발 환경이 아닌 경우에만 이벤트 전송
+      if (!_isDevelopment()) {
+        FirebaseAnalytics.instance.logEvent(
+          name: 'email_registration_failed',
+          parameters: {
+            'language': 'taiwanese',
+            'screen': 'onboarding_taiwanese',
+            'error_message': e.toString(),
+          },
+        );
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

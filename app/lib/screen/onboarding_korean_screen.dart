@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class OnboardingKoreanScreen extends StatefulWidget {
   const OnboardingKoreanScreen({super.key});
@@ -11,6 +13,18 @@ class OnboardingKoreanScreen extends StatefulWidget {
 class _OnboardingKoreanScreenState extends State<OnboardingKoreanScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
+
+  // 개발 환경 감지 함수
+  bool _isDevelopment() {
+    if (kIsWeb) {
+      final uri = Uri.base;
+      return uri.host == 'localhost' ||
+          uri.host == '127.0.0.1' ||
+          uri.host.contains('dev') ||
+          uri.port != 443;
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +194,18 @@ class _OnboardingKoreanScreenState extends State<OnboardingKoreanScreen> {
 
   void _showEmailDialog() {
     _emailController.clear();
+
+    // 개발 환경이 아닌 경우에만 이벤트 전송
+    if (!_isDevelopment()) {
+      FirebaseAnalytics.instance.logEvent(
+        name: 'email_dialog_opened',
+        parameters: {
+          'language': 'korean',
+          'screen': 'onboarding_korean',
+        },
+      );
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -203,7 +229,19 @@ class _OnboardingKoreanScreenState extends State<OnboardingKoreanScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                // 개발 환경이 아닌 경우에만 이벤트 전송
+                if (!_isDevelopment()) {
+                  FirebaseAnalytics.instance.logEvent(
+                    name: 'email_registration_cancelled',
+                    parameters: {
+                      'language': 'korean',
+                      'screen': 'onboarding_korean',
+                    },
+                  );
+                }
+                Navigator.of(context).pop();
+              },
               child: const Text('취소'),
             ),
             ElevatedButton(
@@ -249,6 +287,18 @@ class _OnboardingKoreanScreenState extends State<OnboardingKoreanScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
+      // 개발 환경이 아닌 경우에만 이벤트 전송
+      if (!_isDevelopment()) {
+        FirebaseAnalytics.instance.logEvent(
+          name: 'email_registration_success',
+          parameters: {
+            'language': 'korean',
+            'screen': 'onboarding_korean',
+            'email_domain': email.split('@').last, // 이메일 도메인 추적 (개인정보 보호)
+          },
+        );
+      }
+
       if (mounted) {
         Navigator.of(context).pop(); // 다이얼로그 닫기
         ScaffoldMessenger.of(context).showSnackBar(
@@ -260,6 +310,18 @@ class _OnboardingKoreanScreenState extends State<OnboardingKoreanScreen> {
         );
       }
     } catch (e) {
+      // 개발 환경이 아닌 경우에만 이벤트 전송
+      if (!_isDevelopment()) {
+        FirebaseAnalytics.instance.logEvent(
+          name: 'email_registration_failed',
+          parameters: {
+            'language': 'korean',
+            'screen': 'onboarding_korean',
+            'error_message': e.toString(),
+          },
+        );
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
